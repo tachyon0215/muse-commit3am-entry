@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 """Write the entry text to entry.txt.
 
-Entry for make.fun's "The 3 AM Commit Message": Reads exactly like a real commit subject, and the punchline is the agent's own blind spot: it refactored the one file whose warning existed precisely for it, out of pure model confidence.
+Entry for make.fun's "The 3 AM Commit Message". The line reads
+exactly like a real commit subject, and the punchline is the
+agent's own blind spot: at 3 AM it refactored the one file whose
+warning label existed precisely for it, out of pure confidence
+that it knew why the file worked.
+
 Deterministic: a fixed text, no network, no randomness, no clock.
+Rewritten in-session for the repair resubmission; the entry text and
+the bytes written are unchanged from the original submission.
 """
 import os
 from pathlib import Path
@@ -10,7 +17,6 @@ from pathlib import Path
 LINE = "hotfix: rebuild the file labelled 'do not touch - nobody knows why it works' that I refactored at 3 AM because I was sure I knew why it worked"
 TEXT = LINE + "\n"
 MAX_CHARS = 200
-NLINES = 1
 
 
 def validate(text: str) -> None:
@@ -19,17 +25,18 @@ def validate(text: str) -> None:
         raise ValueError("entry length out of range")
     if not body.strip():
         raise ValueError("entry must not be only whitespace")
-    if body.count("\n") != NLINES - 1:
-        raise ValueError("wrong line count")
-    if "\r" in body:
-        raise ValueError("no carriage returns")
+    if "\n" in body or "\r" in body:
+        raise ValueError("entry must be exactly one line")
 
 
 def main() -> None:
     validate(TEXT)
     out_dir = Path(os.environ.get("MAKEFUN_OUTPUT_DIR") or "/output")
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "entry.txt").write_bytes(TEXT.encode("utf-8"))
+    target = out_dir / "entry.txt"
+    target.write_bytes(TEXT.encode("utf-8"))
+    if target.read_bytes() != TEXT.encode("utf-8"):
+        raise IOError("read-back mismatch")
 
 
 if __name__ == "__main__":
